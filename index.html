@@ -86,7 +86,8 @@ button,select,input,textarea{font:inherit;color:inherit}
 .count{font-variant-numeric:tabular-nums;opacity:.7;margin-left:4px}
 ul.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;position:relative}
 .task{touch-action:pan-y;z-index:1;background-clip:padding-box}
-.dl{flex:none;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;margin-left:4px}
+.dl{position:absolute;right:52px;bottom:4px;font-size:10.5px;line-height:1;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none}
+.task.has-dl .title{padding-bottom:17px}
 .task.late .dl{color:var(--warn);font-weight:600}
 .task.soon .dl{color:var(--ink);font-weight:600}
 .swipebg{position:absolute;left:0;right:0;border-radius:var(--r);background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:flex-end;padding-right:18px;font-weight:600;font-size:14px;z-index:0;pointer-events:none}
@@ -269,8 +270,9 @@ const VAPID_KEY = "BEz5ZIFVi4qROtWSdnriAX2BxZ1KOVdXIWpVr8ibe93onbgc7y3_B1ACZLmMA
 </script>
 <script>
 /* Versienummer: JJ.MM.N  (jaar . maand . zoveelste versie in die maand), bijv. 26.10.2 */
-const APP_VERSION = "26.10.5";
+const APP_VERSION = "26.10.6";
 const VERSIONS = [
+  ["26.10.6","2 okt 2026","Deadline rechtsonder in de hoek van een actie."],
   ["26.10.5","2 okt 2026","Werkt als app en offline; pushmeldingen; back-up downloaden en terugzetten."],
   ["26.10.4","2 okt 2026","Knop Gezinscode wissen verwijderd; Firebase alleen nog open voor de eigen gezinscode."],
   ["26.10.3","2 okt 2026","Deadline klein rechts in de lijst, vegen naar links = done, standaard gesorteerd op deadline."],
@@ -359,7 +361,7 @@ function render(){
   $("list").innerHTML = rows.map((t,i)=>{
     const isLate=!t.klaar && t.deadline && t.deadline<t0;
     const isSoon=!t.klaar && t.deadline && !isLate && t.deadline<=addDays(t0,1);
-    return `<li class="task ${t.klaar?"is-done":""} ${isLate?"late":""} ${isSoon?"soon":""}" data-id="${t.id}" tabindex="0" role="button" aria-label="${i+1}. ${esc(t.actie)}${isLate?" (te laat)":""}">
+    return `<li class="task ${t.klaar?"is-done":""} ${isLate?"late":""} ${isSoon?"soon":""} ${!t.klaar && t.deadline?"has-dl":""}" data-id="${t.id}" tabindex="0" role="button" aria-label="${i+1}. ${esc(t.actie)}${isLate?" (te laat)":""}">
       <span class="num">${i+1}</span><span class="title">${esc(t.actie)}</span>
       ${!t.klaar && t.deadline?`<span class="dl">deadline: ${kort(t.deadline)}</span>`:""}
       ${t.klaar?"":`<button class="handle" type="button" aria-label="Versleep om de prioriteit te veranderen"><span></span></button>`}
