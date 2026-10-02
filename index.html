@@ -77,7 +77,17 @@ button,select,input,textarea{font:inherit;color:inherit}
 .tabs button{border:0;background:none;border-radius:999px;padding:7px 12px;white-space:nowrap;cursor:pointer;color:var(--muted);font-weight:500}
 .tabs button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .count{font-variant-numeric:tabular-nums;opacity:.7;margin-left:4px}
-ul.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+ul.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;position:relative}
+.task{touch-action:pan-y;z-index:1;background-clip:padding-box}
+.dl{flex:none;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;margin-left:4px}
+.task.late .dl{color:var(--warn);font-weight:600}
+.task.soon .dl{color:var(--ink);font-weight:600}
+.swipebg{position:absolute;left:0;right:0;border-radius:var(--r);background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:flex-end;padding-right:18px;font-weight:600;font-size:14px;z-index:0;pointer-events:none}
+.swipebg.back{background:var(--ink);color:var(--bg)}
+.swipebg.ready{filter:brightness(1.12)}
+.task.swiping{transition:none}
+.task.snap{transition:transform .2s ease}
+.resort{border:0;background:none;color:var(--accent);font:inherit;font-weight:600;padding:0 0 0 4px;cursor:pointer}
 .task{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:0 2px 0 14px;display:flex;align-items:center;gap:12px;cursor:pointer;min-height:44px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;position:relative}
 .task:hover{border-color:var(--accent)}
 .task.late{border-color:var(--warn)}
@@ -164,7 +174,7 @@ summary{cursor:pointer;font-weight:600}
     <button type="button" class="btn iconbtn" id="sharelist" aria-label="Lijst delen" title="Lijst delen"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 10H7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-1.5"/><path d="M12 3v11"/><path d="M8.5 6.5 12 3l3.5 3.5"/></svg></button>
   </div>
 
-  <p class="hint" id="hint">Tik voor details · houd vast of pak ☰ om te slepen · bovenaan = belangrijkst</p>
+  <p class="hint" id="hint">Tik voor details · veeg naar links = done · houd vast of pak ☰ om te slepen · <button type="button" class="resort" id="resort">sorteer op deadline</button></p>
   <ul class="list" id="list"></ul>
   <div class="empty" id="empty">Nog geen taken. Tik op <b>+ Nieuwe taak</b> om de eerste actie toe te voegen.</div>
 
@@ -242,8 +252,9 @@ const FIREBASE_CONFIG = {
 </script>
 <script>
 /* Versienummer: JJ.MM.N  (jaar . maand . zoveelste versie in die maand), bijv. 26.10.2 */
-const APP_VERSION = "26.10.2";
+const APP_VERSION = "26.10.3";
 const VERSIONS = [
+  ["26.10.3","2 okt 2026","Deadline klein rechts in de lijst, vegen naar links = done, standaard gesorteerd op deadline."],
   ["26.10.2","2 okt 2026","Losse versie voor GitHub Pages met Firebase-opslag."],
   ["1.10","1 okt 2026","Geschiedenis standaard dichtgeklapt; versie als één regel."],
   ["1.9","1 okt 2026","Meldingen in de app bij nieuwe en afgeronde acties; na toevoegen of afronden de anderen laten weten via WhatsApp."],
@@ -290,7 +301,30 @@ $("ver").textContent = `Versie ${VERSIONS[0][0]} - ${VERSIONS[0][1]}`;
 
 /* ---------- render ---------- */
 const P = t => (typeof t.prio==="number" ? t.prio : 1e9);
-function sortOpen(a,b){ return P(a)-P(b) || (a.deadline||"9999").localeCompare(b.deadline||"9999") || (b.aangemaakt||"").localeCompare(a.aangemaakt||""); }
+/* Standaardvolgorde: eerst op deadline (vroegste bovenaan), daaronder acties zonder deadline op invoerdatum */
+function autoCmp(a,b){
+  if(!!a.deadline !== !!b.deadline) return a.deadline ? -1 : 1;
+  if(a.deadline && a.deadline!==b.deadline) return a.deadline.localeCompare(b.deadline);
+  return (a.aangemaakt||"").localeCompare(b.aangemaakt||"") || ((a.gemaakt||a.gewijzigd||0)-(b.gemaakt||b.gewijzigd||0));
+}
+function sortOpen(a,b){ return P(a)-P(b) || autoCmp(a,b); }
+/* Plek voor een nieuwe/heropende/gewijzigde actie: direct na de laatste actie die volgens de standaardvolgorde ervoor hoort.
+   Handmatig versleepte acties blijven zo op hun plek. Geeft een prio-getal tussen de buren terug. */
+function prioFor(x, skipId){
+  const L=tasks.filter(t=>!t.klaar && t.id!==skipId).sort(sortOpen);
+  let pos=0; L.forEach((t,i)=>{ if(autoCmp(t,x)<=0) pos=i+1; });
+  return between(L[pos-1], L[pos]);
+}
+function between(a,b){
+  const pa=a&&typeof a.prio==="number"?a.prio:null, pb=b&&typeof b.prio==="number"?b.prio:null;
+  if(pa===null && pb===null) return 1;
+  if(pa===null) return pb-1;
+  if(pb===null) return pa+1;
+  return (pa+pb)/2;
+}
+const MND=["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
+const kort = d => { const [y,m,dd]=d.split("-"); return `${dd}-${MND[+m-1]}`; };
+function addDays(iso,n){ const d=new Date(iso+"T12:00:00"); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
 function sortDone(a,b){ return (b.klaarOp||"").localeCompare(a.klaarOp||"") || (b.gewijzigd||0)-(a.gewijzigd||0); }
 function render(){
   if(drag){ pendingRender=true; return; }
@@ -305,8 +339,10 @@ function render(){
   if(!rows.length) $("empty").innerHTML = tasks.length? (filter==="klaar"?"Nog niets done.":"Alles is afgehandeld. Mooi werk!") : "Nog geen taken. Tik op <b>+ Nieuwe taak</b> om de eerste actie toe te voegen.";
   $("list").innerHTML = rows.map((t,i)=>{
     const isLate=!t.klaar && t.deadline && t.deadline<t0;
-    return `<li class="task ${t.klaar?"is-done":""} ${isLate?"late":""}" data-id="${t.id}" tabindex="0" role="button" aria-label="${i+1}. ${esc(t.actie)}${isLate?" (te laat)":""}">
+    const isSoon=!t.klaar && t.deadline && !isLate && t.deadline<=addDays(t0,1);
+    return `<li class="task ${t.klaar?"is-done":""} ${isLate?"late":""} ${isSoon?"soon":""}" data-id="${t.id}" tabindex="0" role="button" aria-label="${i+1}. ${esc(t.actie)}${isLate?" (te laat)":""}">
       <span class="num">${i+1}</span><span class="title">${esc(t.actie)}</span>
+      ${!t.klaar && t.deadline?`<span class="dl">deadline: ${kort(t.deadline)}</span>`:""}
       ${t.klaar?"":`<button class="handle" type="button" aria-label="Versleep om de prioriteit te veranderen"><span></span></button>`}
     </li>`;}).join("");
   if(shown){ const t=tasks.find(x=>x.id===shown); t ? showDetail(t) : closeDetail(); }
@@ -343,14 +379,14 @@ $("d-actions").addEventListener("click",async e=>{
   const t=tasks.find(x=>x.id===shown); if(!t) return;
   if(b.dataset.d==="edit"){ closeDetail(); openSheet(t); }
   if(b.dataset.d==="share"){ closeDetail(); openShare("Actie delen", taskText(t)); }
-  if(b.dataset.d==="toggle"){
-    const klaar=!t.klaar; closeDetail();
-    const extra = klaar ? {} : {prio: nextPrio()};
-    await write(()=>db.doc("tasks/"+t.id).update({klaar,klaarOp:klaar?today():"",klaarDoor:klaar?meSel.value:"",gewijzigd:Date.now(),gewijzigdDoor:meSel.value,...extra}),
-      klaar?"afgehandeld":"weer open gezet", t.actie, klaar?"Verplaatst naar Done":"Terug naar Open (onderaan)");
-  }
+  if(b.dataset.d==="toggle"){ closeDetail(); await toggleDone(t); }
 });
-function nextPrio(){ return tasks.filter(t=>!t.klaar).reduce((m,t)=>Math.max(m, typeof t.prio==="number"?t.prio:0), tasks.filter(t=>!t.klaar).length)+1; }
+async function toggleDone(t){
+  const klaar=!t.klaar;
+  const extra = klaar ? {} : {prio: prioFor(t,t.id)};
+  await write(()=>db.doc("tasks/"+t.id).update({klaar,klaarOp:klaar?today():"",klaarDoor:klaar?meSel.value:"",gewijzigd:Date.now(),gewijzigdDoor:meSel.value,...extra}),
+    klaar?"afgehandeld":"weer open gezet", t.actie, klaar?"Verplaatst naar Done":"Terug naar Open");
+}
 
 document.querySelector(".tabs").addEventListener("click",e=>{
   const b=e.target.closest("button[data-f]"); if(!b) return;
@@ -455,13 +491,15 @@ async function endDrag(){
   suppressClick=true; setTimeout(()=>suppressClick=false,350);
   const ids=d.rows.map(x=>x.dataset.id);
   const [moved]=ids.splice(d.idx,1); ids.splice(d.to,0,moved);
-  const changes=[];
-  ids.forEach((id,i)=>{ const t=tasks.find(x=>x.id===id); if(t && t.prio!==i+1){ changes.push([id,i+1]); t.prio=i+1; } });
-  pendingRender=false; render();
-  if(!changes.length) return;
-  const mt=tasks.find(x=>x.id===moved);
+  pendingRender=false;
+  if(d.to===d.idx){ render(); return; }
+  const byId=id=>tasks.find(x=>x.id===id);
+  const mt=byId(moved);
+  const np=between(byId(ids[d.to-1]), byId(ids[d.to+1]));
+  if(mt) mt.prio=np;
+  render();
   try{
-    for(const [id,prio] of changes) await db.doc("tasks/"+id).update({prio});
+    await db.doc("tasks/"+moved).update({prio:np});
     toast(`Verplaatst naar plek ${d.to+1}`);
     try{ await db.collection("log").add({t:Date.now(),wie:meSel.value,wat:`naar plek ${d.to+1} verplaatst`,actie:String(mt?.actie||"").slice(0,200)}); }catch(_){}
   }catch(err){
@@ -491,6 +529,61 @@ document.addEventListener("touchend",()=>{ cancelPress(); endDrag(); });
 document.addEventListener("touchcancel",()=>{ cancelPress(); endDrag(); });
 list.addEventListener("contextmenu",e=>{ if(drag||press) e.preventDefault(); });
 
+/* ---------- vegen naar links = done (in Done: terug naar open) ---------- */
+let sw=null;
+list.addEventListener("touchstart",e=>{
+  if(drag || !canWrite || e.touches.length!==1 || e.target.closest(".handle")) return;
+  const li=e.target.closest(".task"); if(!li) return;
+  sw={li,x:e.touches[0].clientX,y:e.touches[0].clientY,dx:0,on:false};
+},{passive:true});
+list.addEventListener("touchmove",e=>{
+  if(!sw || drag) return;
+  const t=e.touches[0], dx=t.clientX-sw.x, dy=t.clientY-sw.y;
+  if(!sw.on){
+    if(Math.abs(dy)>10 && Math.abs(dy)>Math.abs(dx)){ sw=null; return; }
+    if(dx<-10 && Math.abs(dx)>Math.abs(dy)*1.2){
+      sw.on=true; cancelPress();
+      const bg=document.createElement("div"); bg.className="swipebg"+(filter==="klaar"?" back":"");
+      bg.textContent=filter==="klaar"?"↩ Terug naar Open":"✓ Done";
+      bg.style.top=sw.li.offsetTop+"px"; bg.style.height=sw.li.offsetHeight+"px";
+      list.appendChild(bg); sw.bg=bg; sw.li.classList.add("swiping");
+    } else return;
+  }
+  e.preventDefault();
+  sw.dx=Math.min(0,dx);
+  sw.li.style.transform=`translateX(${sw.dx}px)`;
+  sw.bg.classList.toggle("ready", -sw.dx > sw.li.offsetWidth*0.35);
+},{passive:false});
+function endSwipe(){
+  if(!sw) return; const s=sw; sw=null;
+  if(!s.on) return;
+  suppressClick=true; setTimeout(()=>suppressClick=false,350);
+  const ok=-s.dx > s.li.offsetWidth*0.35;
+  s.li.classList.remove("swiping"); s.li.classList.add("snap");
+  s.li.style.transform = ok ? `translateX(-110%)` : "";
+  setTimeout(async()=>{
+    s.bg.remove(); s.li.classList.remove("snap");
+    const t=tasks.find(x=>x.id===s.li.dataset.id);
+    if(ok && t) await toggleDone(t); else s.li.style.transform="";
+    render();
+  },200);
+}
+list.addEventListener("touchend",endSwipe);
+list.addEventListener("touchcancel",endSwipe);
+
+/* ---------- opnieuw sorteren op deadline ---------- */
+$("resort").onclick=async()=>{
+  if(!db) return;
+  const L=tasks.filter(t=>!t.klaar).sort(autoCmp);
+  L.forEach((t,i)=>t.prio=i+1); render();
+  try{
+    if(db.batch){ const b=db.batch(); L.forEach((t,i)=>b.update(db.doc("tasks/"+t.id),{prio:i+1})); await b.commit(); }
+    else for(const [i,t] of L.entries()) await db.doc("tasks/"+t.id).update({prio:i+1});
+    toast("Gesorteerd op deadline");
+    try{ await db.collection("log").add({t:Date.now(),wie:meSel.value,wat:"op deadline gesorteerd",actie:"De lijst"}); }catch(_){}
+  }catch(_){ toast("Sorteren opslaan lukte niet, probeer het opnieuw"); }
+};
+
 /* ---------- formulier ---------- */
 function openSheet(t){
   editing=t||null;
@@ -515,8 +608,13 @@ $("form").addEventListener("submit",async e=>{
   if(!data.actie) return;
   if($("f-url").value.trim() && !data.url){ toast("Dat webadres klopt niet"); return; }
   const t=editing; closeSheet();
-  if(t) await write(()=>db.doc("tasks/"+t.id).update(data),"gewijzigd",data.actie,"Opgeslagen");
-  else await write(()=>db.collection("tasks").add({...data,klaar:false,klaarOp:"",klaarDoor:"",prio:nextPrio()}),"toegevoegd",data.actie,"Toegevoegd onderaan de lijst");
+  if(t){
+    if(!t.klaar && (t.deadline||"")!==data.deadline) data.prio=prioFor({...t,...data},t.id);
+    await write(()=>db.doc("tasks/"+t.id).update(data),"gewijzigd",data.actie,"Opgeslagen");
+  } else {
+    data.gemaakt=Date.now();
+    await write(()=>db.collection("tasks").add({...data,klaar:false,klaarOp:"",klaarDoor:"",prio:prioFor(data)}),"toegevoegd",data.actie,"Toegevoegd");
+  }
 });
 
 /* ---------- meldingen ---------- */
@@ -590,7 +688,7 @@ $("forget").onclick=()=>{ try{localStorage.removeItem("gezinscode")}catch(_){} l
   firebase.initializeApp(FIREBASE_CONFIG);
   const fs=firebase.firestore();
   const base=fs.collection("lijsten").doc(code);
-  db={ collection:n=>base.collection(n), doc:p=>{ const [c,id]=p.split("/"); return base.collection(c).doc(id); } };
+  db={ collection:n=>base.collection(n), doc:p=>{ const [c,id]=p.split("/"); return base.collection(c).doc(id); }, batch:()=>fs.batch() };
   const fail=()=>{ $("conn").textContent="Geen verbinding met de lijst. Controleer de gezinscode of je internet, en herlaad de app."; $("conn").hidden=false; };
   db.collection("tasks").onSnapshot(s=>{
     tasks=s.docs.map(d=>({id:d.id,...d.data()})); render();
