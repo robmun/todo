@@ -73,7 +73,7 @@ Doe dit één keer. Nog een keer importeren overschrijft dezelfde acties met de 
 
 ## Updates
 
-Pas `index.html` aan en upload hem opnieuw naar GitHub (zelfde bestandsnaam). Na een minuut heeft iedereen automatisch de nieuwe versie; de lijst zelf blijft gewoon in Firebase staan. Verhoog bij een wijziging `APP_VERSION` en voeg bovenaan `VERSIONS` een regel toe, dan zie je in het tabblad Done welke versie draait. Elke upload staat ook in de geschiedenis van de repository (tabblad **Commits**), dus je kunt altijd terug naar een eerdere versie.
+Pas `index.html` aan en upload hem opnieuw naar GitHub (zelfde bestandsnaam). Na een minuut heeft iedereen automatisch de nieuwe versie; de lijst zelf blijft gewoon in Firebase staan. Pas bij een wijziging `APP_VERSION` aan en voeg bovenaan `VERSIONS` een regel toe, dan zie je in het tabblad Done welke versie draait. Het versienummer is **JJ.MM.N**: jaar, maand en de zoveelste versie in die maand. Voorbeeld: `26.10.2` is de tweede versie van oktober 2026; de eerste versie in november wordt `26.11.1`. Elke upload staat ook in de geschiedenis van de repository (tabblad **Commits**), dus je kunt altijd terug naar een eerdere versie.
 
 ## Goed om te weten
 

@@ -171,7 +171,7 @@ summary{cursor:pointer;font-weight:600}
   <div id="extra" hidden style="display:flex;flex-direction:column;gap:10px">
   <details id="hist"><summary>Geschiedenis</summary><ul class="log" id="log"><li class="status">Nog geen wijzigingen.</li></ul></details>
 
-  <p class="status" id="ver"></p>
+  <p class="status" id="ver" style="text-align:center"></p>
   <div class="importrow status"><label class="btn" for="imp" style="font-size:13px;padding:5px 11px">Acties importeren (.json)</label><input type="file" id="imp" accept=".json,application/json" hidden><button type="button" class="btn" id="forget" style="font-size:13px;padding:5px 11px">Gezinscode wissen</button></div>
   <p class="status" id="conn" hidden></p>
   </div>
@@ -241,9 +241,10 @@ const FIREBASE_CONFIG = {
 };
 </script>
 <script>
-const APP_VERSION = "2.0";
+/* Versienummer: JJ.MM.N  (jaar . maand . zoveelste versie in die maand), bijv. 26.10.2 */
+const APP_VERSION = "26.10.2";
 const VERSIONS = [
-  ["2.0","2 okt 2026","Losse versie voor GitHub Pages met Firebase-opslag."],
+  ["26.10.2","2 okt 2026","Losse versie voor GitHub Pages met Firebase-opslag."],
   ["1.10","1 okt 2026","Geschiedenis standaard dichtgeklapt; versie als één regel."],
   ["1.9","1 okt 2026","Meldingen in de app bij nieuwe en afgeronde acties; na toevoegen of afronden de anderen laten weten via WhatsApp."],
   ["1.8","1 okt 2026","Alle knoppen op één regel; tabblad Afgehandeld heet nu Done."],
@@ -285,7 +286,7 @@ const meSel=$("me"); const saved=store.get("ik"); if(saved) meSel.value=saved;
 meSel.addEventListener("change",()=>store.set("ik",meSel.value));
 
 /* ---------- versies ---------- */
-$("ver").textContent = `Versie ${VERSIONS[0][0]} · ${VERSIONS[0][1]}`;
+$("ver").textContent = `Versie ${VERSIONS[0][0]} - ${VERSIONS[0][1]}`;
 
 /* ---------- render ---------- */
 const P = t => (typeof t.prio==="number" ? t.prio : 1e9);
@@ -565,7 +566,9 @@ async function write(fn,wat,actie,msg){
 
 /* ---------- verbinden (Firebase) ---------- */
 function getCode(){
-  const m=location.hash.match(/k=([A-Za-z0-9_-]{20,})/);
+  const who=location.hash.match(/[#&]ik=(Robert|Jasmijn|Heleen)\b/i);
+  if(who){ const n=who[1][0].toUpperCase()+who[1].slice(1).toLowerCase(); store.set("ik",n); meSel.value=n; }
+  const m=location.hash.match(/[#&]k=([A-Za-z0-9_-]{20,})/);
   if(m){ store.set("gezinscode",m[1]); return m[1]; }
   return store.get("gezinscode");
 }
