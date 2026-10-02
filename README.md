@@ -9,9 +9,11 @@ Gedeelde to-do-lijst voor Jasmijn, Heleen en Robert. Een losse webapp die op Git
 | `index.html` | De app |
 | `apple-touch-icon.png` | Icoon op het beginscherm van de iPhone |
 | `favicon.png` | Icoon in het browsertabblad |
-| `firestore.rules` | Beveiligingsregels voor Firebase (stap 1.4) |
 
-Zet het exportbestand `takenlijst-export.json` **niet** op GitHub: daar staan persoonlijke gegevens in.
+Zet deze twee bestanden **niet** op GitHub:
+
+- `firestore-regels.txt`: de beveiligingsregels voor Firebase. Daar staat de gezinscode in.
+- `takenlijst-export.json`: daar staan persoonlijke gegevens in.
 
 ---
 
@@ -22,7 +24,7 @@ Zet het exportbestand `takenlijst-export.json` **niet** op GitHub: daar staan pe
 3. Links in het menu: **Build → Firestore Database → Database maken**.
    - Locatie: **eur3 (europe-west)**.
    - Kies **Starten in productiemodus**.
-4. Open het tabblad **Regels**, vervang alles door de inhoud van `firestore.rules` en klik **Publiceren**.
+4. Open het tabblad **Regels**, vervang alles door de inhoud van `firestore-regels.txt` en klik **Publiceren**. Deze regels laten alleen jullie eigen lijst toe (met de gezinscode) en zetten de rest van het project dicht.
 5. Ga naar het tandwiel **Projectinstellingen → Algemeen**. Onder *Jouw apps* klik je op het **</>**-icoon (web-app).
    - Naam: `todo-jassie`, Firebase Hosting **niet** aanvinken → **App registreren**.
    - Je ziet een blok `const firebaseConfig = { apiKey: "...", ... }`. Kopieer de waarden.
@@ -33,7 +35,7 @@ De `apiKey` is geen wachtwoord: Firebase bedoelt hem als openbaar. De echte afsc
 ## 2. Op GitHub zetten
 
 1. Maak op <https://github.com/new> een nieuwe repository, bijvoorbeeld `todo-jassie`, **Public**.
-2. Klik **uploading an existing file** en sleep `index.html`, `apple-touch-icon.png`, `favicon.png`, `firestore.rules` en deze `README.md` erin → **Commit changes**.
+2. Klik **uploading an existing file** en sleep `index.html`, `apple-touch-icon.png`, `favicon.png` en deze `README.md` erin → **Commit changes**.
 3. Ga naar **Settings → Pages**. Bij *Source*: **Deploy from a branch**, branch **main**, map **/(root)** → **Save**.
 4. Na een minuut staat de app op `https://<jouw-gebruikersnaam>.github.io/todo-jassie/`.
 
@@ -74,6 +76,10 @@ Doe dit één keer. Nog een keer importeren overschrijft dezelfde acties met de 
 ## Updates
 
 Pas `index.html` aan en upload hem opnieuw naar GitHub (zelfde bestandsnaam). Na een minuut heeft iedereen automatisch de nieuwe versie; de lijst zelf blijft gewoon in Firebase staan. Pas bij een wijziging `APP_VERSION` aan en voeg bovenaan `VERSIONS` een regel toe, dan zie je in het tabblad Done welke versie draait. Het versienummer is **JJ.MM.N**: jaar, maand en de zoveelste versie in die maand. Voorbeeld: `26.10.2` is de tweede versie van oktober 2026; de eerste versie in november wordt `26.11.1`. Elke upload staat ook in de geschiedenis van de repository (tabblad **Commits**), dus je kunt altijd terug naar een eerdere versie.
+
+## Gezinscode veranderen
+
+Is de gezinscode bij iemand terechtgekomen die hem niet mag hebben? Vraag Claude om een nieuwe code en aangepaste regels. De bestaande acties moeten dan één keer opnieuw worden geïmporteerd onder de nieuwe code.
 
 ## Goed om te weten
 

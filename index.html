@@ -182,7 +182,7 @@ summary{cursor:pointer;font-weight:600}
   <details id="hist"><summary>Geschiedenis</summary><ul class="log" id="log"><li class="status">Nog geen wijzigingen.</li></ul></details>
 
   <p class="status" id="ver" style="text-align:center"></p>
-  <div class="importrow status"><label class="btn" for="imp" style="font-size:13px;padding:5px 11px">Acties importeren (.json)</label><input type="file" id="imp" accept=".json,application/json" hidden><button type="button" class="btn" id="forget" style="font-size:13px;padding:5px 11px">Gezinscode wissen</button></div>
+  <div class="importrow status"><label class="btn" for="imp" style="font-size:13px;padding:5px 11px">Acties importeren (.json)</label><input type="file" id="imp" accept=".json,application/json" hidden></div>
   <p class="status" id="conn" hidden></p>
   </div>
 </div>
@@ -252,8 +252,9 @@ const FIREBASE_CONFIG = {
 </script>
 <script>
 /* Versienummer: JJ.MM.N  (jaar . maand . zoveelste versie in die maand), bijv. 26.10.2 */
-const APP_VERSION = "26.10.3";
+const APP_VERSION = "26.10.4";
 const VERSIONS = [
+  ["26.10.4","2 okt 2026","Knop Gezinscode wissen verwijderd; Firebase alleen nog open voor de eigen gezinscode."],
   ["26.10.3","2 okt 2026","Deadline klein rechts in de lijst, vegen naar links = done, standaard gesorteerd op deadline."],
   ["26.10.2","2 okt 2026","Losse versie voor GitHub Pages met Firebase-opslag."],
   ["1.10","1 okt 2026","Geschiedenis standaard dichtgeklapt; versie als één regel."],
@@ -680,7 +681,6 @@ $("g-form").addEventListener("submit",e=>{
   if(!/^[A-Za-z0-9_-]{20,}$/.test(v)){ $("g-err").textContent="Die code klopt niet. Hij is minstens 20 tekens, alleen letters, cijfers, - en _."; $("g-err").hidden=false; return; }
   store.set("gezinscode",v); location.reload();
 });
-$("forget").onclick=()=>{ try{localStorage.removeItem("gezinscode")}catch(_){} location.hash=""; location.reload(); };
 
 (function connect(){
   if(!FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey.startsWith("PLAK")){ showGate("De app is nog niet gekoppeld aan Firebase. Vul eerst FIREBASE_CONFIG in (zie README)."); $("g-form").hidden=true; return; }
