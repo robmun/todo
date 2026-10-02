@@ -2,7 +2,7 @@
    1. Bewaart de app zodat hij ook zonder internet opent.
    2. Ontvangt pushmeldingen via Firebase Cloud Messaging.
    Pas CACHE aan bij elke nieuwe versie van de app. */
-const CACHE = "todo-jassie-26.10.6";
+const CACHE = "todo-jassie-26.10.7";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "apple-touch-icon.png", "favicon.png", "icon-192.png", "icon-512.png"];
 const EXTERN = ["www.gstatic.com", "fonts.googleapis.com", "fonts.gstatic.com"];
 
