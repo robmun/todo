@@ -1,88 +1,121 @@
 # To Do Jassie
 
-Gedeelde to-do-lijst voor Jasmijn, Heleen en Robert. Een losse webapp die op GitHub Pages draait en de lijst bewaart in Firebase (gratis). Niemand heeft een Claude-account nodig.
+Gedeelde to-do-lijst voor Jasmijn, Heleen en Robert. Een webapp op GitHub Pages die de lijst bewaart in Firebase. Werkt als app op het beginscherm, ook zonder internet, en stuurt pushmeldingen. Niemand heeft een Claude-account nodig.
 
-## Bestanden
+App-adres: <https://robmun.github.io/todo/>
+
+## Bestanden op GitHub
 
 | Bestand | Wat |
 |---|---|
 | `index.html` | De app |
-| `apple-touch-icon.png` | Icoon op het beginscherm van de iPhone |
-| `favicon.png` | Icoon in het browsertabblad |
+| `sw.js` | Laat de app offline werken en ontvangt pushmeldingen |
+| `manifest.webmanifest` | Maakt er een echte app van op het beginscherm |
+| `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`, `favicon.png` | Iconen |
+| `README.md` | Deze uitleg |
 
-Zet deze twee bestanden **niet** op GitHub:
+**Nooit op GitHub** (deze repository is openbaar):
 
-- `firestore-regels.txt`: de beveiligingsregels voor Firebase. Daar staat de gezinscode in.
-- `takenlijst-export.json`: daar staan persoonlijke gegevens in.
+- de gezinscode, dus ook niet in deze README;
+- `firestore-regels.txt`: daar staat de gezinscode in;
+- back-ups en `takenlijst-export.json`: persoonlijke gegevens;
+- de map `meldingen` (die gaat naar Firebase, zie stap 4).
 
 ---
 
-## 1. Firebase instellen (opslag van de lijst, ±10 minuten)
+## 1. Firebase (opslag)
 
-1. Ga naar <https://console.firebase.google.com> en log in met je Google-account.
-2. **Project toevoegen** → naam bijvoorbeeld `todo-jassie` → Google Analytics mag uit → **Project maken**.
-3. Links in het menu: **Build → Firestore Database → Database maken**.
-   - Locatie: **eur3 (europe-west)**.
-   - Kies **Starten in productiemodus**.
-4. Open het tabblad **Regels**, vervang alles door de inhoud van `firestore-regels.txt` en klik **Publiceren**. Deze regels laten alleen jullie eigen lijst toe (met de gezinscode) en zetten de rest van het project dicht.
-5. Ga naar het tandwiel **Projectinstellingen → Algemeen**. Onder *Jouw apps* klik je op het **</>**-icoon (web-app).
-   - Naam: `todo-jassie`, Firebase Hosting **niet** aanvinken → **App registreren**.
-   - Je ziet een blok `const firebaseConfig = { apiKey: "...", ... }`. Kopieer de waarden.
-6. Open `index.html` in een teksteditor, zoek `FIREBASE_CONFIG` (bovenaan het tweede `<script>`-blok) en vul de zes waarden in. Opslaan.
+1. <https://console.firebase.google.com> → project **to-do-jasmijn**.
+2. **Firestore Database → Regels**: vervang alles door de inhoud van `firestore-regels.txt` → **Publiceren**.
+   Alleen jullie eigen lijst is dan bereikbaar; de rest van het project is dicht.
+3. De koppelgegevens staan al in `index.html` en `sw.js` (`FIREBASE_CONFIG`). Die zijn niet geheim.
 
-De `apiKey` is geen wachtwoord: Firebase bedoelt hem als openbaar. De echte afscherming is de gezinscode (stap 3).
+## 2. GitHub
 
-## 2. Op GitHub zetten
+1. Upload alle bestanden uit de tabel hierboven naar <https://github.com/robmun/todo> (**Add file → Upload files**), in de hoofdmap.
+2. **Settings → Pages**: *Deploy from a branch*, branch **main**, map **/(root)** → **Save**.
 
-1. Maak op <https://github.com/new> een nieuwe repository, bijvoorbeeld `todo-jassie`, **Public**.
-2. Klik **uploading an existing file** en sleep `index.html`, `apple-touch-icon.png`, `favicon.png` en deze `README.md` erin → **Commit changes**.
-3. Ga naar **Settings → Pages**. Bij *Source*: **Deploy from a branch**, branch **main**, map **/(root)** → **Save**.
-4. Na een minuut staat de app op `https://<jouw-gebruikersnaam>.github.io/todo-jassie/`.
+## 3. Op de iPhone zetten
 
-## 3. Gezinscode
-
-Iedereen die de gezinscode kent, kan de lijst lezen en wijzigen. Behandel hem als een wachtwoord en deel hem alleen privé.
-
-Voorgestelde code (mag je ook zelf verzinnen: minstens 20 tekens, alleen letters, cijfers, `-` en `_`):
+Iedereen krijgt privé (WhatsApp) een persoonlijke link van Robert, in deze vorm:
 
 ```
-BsHXk1rSg6ykaXZKJ80r9Eov
+https://robmun.github.io/todo/#k=<gezinscode>&ik=<Naam>
 ```
 
-De handigste link om te delen bevat de code al:
+1. Open de link in **Safari**.
+2. Deel-icoon → **Zet op beginscherm** → **Voeg toe**.
+3. Open de app vanaf het beginscherm. Vraagt hij om de gezinscode, plak die dan één keer.
 
-```
-https://<jouw-gebruikersnaam>.github.io/todo-jassie/#k=BsHXk1rSg6ykaXZKJ80r9Eov
-```
+De app op het beginscherm opent schermvullend, werkt ook zonder internet en synchroniseert wijzigingen zodra er weer verbinding is.
 
-Stuur die link privé (WhatsApp) naar Jasmijn en Heleen.
+## 4. Pushmeldingen (eenmalig, ±20 minuten)
 
-## 4. Op het beginscherm van de iPhone
+Iedereen krijgt dan een melding op het vergrendelscherm als een ander een actie toevoegt of op Done zet. Je eigen wijzigingen geven geen melding.
 
-1. Open de link **met de code erin** in **Safari**.
-2. Deel-icoon → **Zet op beginscherm** → naam **To Do Jassie** → **Voeg toe**.
-3. Open de app vanaf het beginscherm en kies bovenin bij **Ik** je eigen naam.
+### 4a. Blaze-abonnement aanzetten
 
-Vraagt de app toch om de gezinscode (bijvoorbeeld als je de link zonder code gebruikte), plak hem dan één keer in het veld.
+Pushmeldingen hebben een klein stukje code bij Firebase nodig (een *Cloud Function*), en dat kan alleen met het Blaze-abonnement.
 
-## 5. Huidige taken overzetten (eenmalig)
+1. Firebase-console → linksonder **Upgrade** → **Blaze** → creditcard koppelen.
+2. Zet een budgetmelding van bijvoorbeeld € 1. Bij jullie gebruik blijft het in de praktijk € 0: er zit een ruime gratis hoeveelheid in.
 
-1. Open de app (stap 4) op je computer of telefoon.
-2. Tabblad **Done** → onderaan **Acties importeren (.json)** → kies `takenlijst-export.json`.
-3. De acties staan nu in de lijst, met hun volgorde, opmerkingen en status.
+### 4b. Web Push-sleutel
 
-Doe dit één keer. Nog een keer importeren overschrijft dezelfde acties met de oude versie.
+1. Tandwiel → **Projectinstellingen → Cloud Messaging**.
+2. Onder **Web-configuratie → Web Push-certificaten** → **Sleutelpaar genereren**.
+3. Kopieer de lange sleutel en zet hem in `index.html` bij `VAPID_KEY` (of stuur hem naar Claude). Deze sleutel is niet geheim.
+4. Upload de nieuwe `index.html` naar GitHub.
 
-## Updates
+### 4c. De meldingen-code installeren (via Google Cloud Shell, niets installeren op je computer)
 
-Pas `index.html` aan en upload hem opnieuw naar GitHub (zelfde bestandsnaam). Na een minuut heeft iedereen automatisch de nieuwe versie; de lijst zelf blijft gewoon in Firebase staan. Pas bij een wijziging `APP_VERSION` aan en voeg bovenaan `VERSIONS` een regel toe, dan zie je in het tabblad Done welke versie draait. Het versienummer is **JJ.MM.N**: jaar, maand en de zoveelste versie in die maand. Voorbeeld: `26.10.2` is de tweede versie van oktober 2026; de eerste versie in november wordt `26.11.1`. Elke upload staat ook in de geschiedenis van de repository (tabblad **Commits**), dus je kunt altijd terug naar een eerdere versie.
+1. Open <https://console.cloud.google.com/?cloudshell=true> met hetzelfde Google-account. Kies bovenin project **to-do-jasmijn**.
+2. Onderin opent een terminal. Klik op **⋮ → Uploaden** en kies `meldingen.zip`.
+3. Plak deze regels in de terminal en druk op Enter:
+
+   ```
+   unzip -o meldingen.zip -d meldingen && cd meldingen
+   npm --prefix functions install
+   npx firebase-tools login --no-localhost
+   npx firebase-tools deploy --only functions --project to-do-jasmijn
+   ```
+
+4. Bij `login` krijg je een link: open die, log in, en plak de code terug in de terminal.
+5. Vraagt de deploy om API's aan te zetten (Cloud Functions, Cloud Build, Eventarc, Artifact Registry), antwoord dan **Y**. De eerste keer duurt het een paar minuten.
+6. Klaar als je `Deploy complete!` ziet.
+
+### 4d. Meldingen aanzetten op elke telefoon
+
+1. Open de app **vanaf het beginscherm** (in Safari zelf kan het niet; iOS 16.4 of nieuwer).
+2. Tik op **Aanzetten** in de balk boven de lijst (of: tabblad **Done** → **Meldingen aanzetten**) en kies **Sta toe**.
+3. In het tabblad Done staat daarna: *Meldingen: aan voor (naam)*.
+
+De melding gaat naar de naam die bij **Ik** staat. Zet die dus op elke telefoon goed.
+
+## Back-up
+
+Tabblad **Done** → **Back-up downloaden** bewaart alle acties en de geschiedenis in één bestand. Met **Back-up terugzetten** zet je zo'n bestand (of `takenlijst-export.json`) terug. Bewaar back-ups niet op GitHub.
+
+## Updates en versienummer
+
+Pas de bestanden aan en upload ze opnieuw naar GitHub. Iedereen krijgt de nieuwe versie automatisch de volgende keer dat de app opent met internet.
+
+Het versienummer is **JJ.MM.N**: jaar, maand en de zoveelste versie in die maand (`26.10.5` is de vijfde versie van oktober 2026; de eerste in november wordt `26.11.1`). Bij een nieuwe versie:
+
+- in `index.html`: `APP_VERSION` aanpassen en bovenaan `VERSIONS` een regel toevoegen;
+- in `sw.js`: `CACHE` op hetzelfde nummer zetten.
+
+Elke upload staat in de geschiedenis van de repository (tabblad **Commits**), dus je kunt altijd terug.
 
 ## Gezinscode veranderen
 
-Is de gezinscode bij iemand terechtgekomen die hem niet mag hebben? Vraag Claude om een nieuwe code en aangepaste regels. De bestaande acties moeten dan één keer opnieuw worden geïmporteerd onder de nieuwe code.
+Als de code bij iemand terechtkomt die hem niet mag hebben:
+
+1. Maak een back-up (tabblad Done).
+2. Kies een nieuwe code (minstens 20 tekens: letters, cijfers, `-`, `_`) en zet die in `firestore-regels.txt` → publiceren in Firebase.
+3. Stuur iedereen een nieuwe persoonlijke link. Open de app via die link en zet de back-up terug.
 
 ## Goed om te weten
 
-- Werkt zonder Claude-account en zonder inloggen; alleen de gezinscode is nodig.
-- Firebase is gratis voor dit gebruik (de gratis limiet is tienduizenden lees- en schrijfacties per dag).
-- De app in Claude en deze GitHub-versie zijn twee aparte lijsten. Na het overzetten kun je de Claude-versie laten rusten.
+- Geen inlog: wie de gezinscode heeft, kan de lijst lezen en wijzigen.
+- De Claude-versie van de app en deze GitHub-versie zijn twee aparte lijsten.

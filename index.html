@@ -10,6 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#eef1ec">
 <meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,7 +24,13 @@ img{max-width:100%}
 .gate h2{font:800 22px/1.15 var(--display);text-transform:none;letter-spacing:-.01em;color:var(--ink)}
 .gate p{margin:0;color:var(--muted)}
 .gate .err{color:var(--warn)}
-.importrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.importrow{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
+.importrow .btn{font-size:13px;padding:5px 11px}
+.pushbar{background:var(--accent-soft);border-radius:var(--r);padding:10px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px}
+.pushbar .txt{flex:1 1 180px;min-width:0}
+.pushbar .btn{padding:6px 12px;font-size:13.5px}
+.offline{margin:-8px 0 0;font-size:12.5px;color:var(--warn);text-align:center}
+.pushrow{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;text-align:center}
 
 /* Layout: één smalle kolom als een telefoonapp — kop met agenda, filterstrook, kaartenlijst, invoerblad onderin */
 :root{
@@ -174,6 +181,12 @@ summary{cursor:pointer;font-weight:600}
     <button type="button" class="btn iconbtn" id="sharelist" aria-label="Lijst delen" title="Lijst delen"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 10H7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-1.5"/><path d="M12 3v11"/><path d="M8.5 6.5 12 3l3.5 3.5"/></svg></button>
   </div>
 
+  <p class="offline" id="offline" hidden>Offline · wijzigingen worden bewaard en verstuurd zodra je weer verbinding hebt</p>
+  <div class="pushbar" id="pushbar" hidden>
+    <span class="txt" id="pushbar-txt">Een melding krijgen als er een actie bijkomt of op Done wordt gezet?</span>
+    <button type="button" class="btn primary" id="push-on">Aanzetten</button>
+    <button type="button" class="btn" id="push-later">Niet nu</button>
+  </div>
   <p class="hint" id="hint">Tik voor details · veeg naar links = done · houd vast of pak ☰ om te slepen · <button type="button" class="resort" id="resort">sorteer op deadline</button></p>
   <ul class="list" id="list"></ul>
   <div class="empty" id="empty">Nog geen taken. Tik op <b>+ Nieuwe taak</b> om de eerste actie toe te voegen.</div>
@@ -182,7 +195,8 @@ summary{cursor:pointer;font-weight:600}
   <details id="hist"><summary>Geschiedenis</summary><ul class="log" id="log"><li class="status">Nog geen wijzigingen.</li></ul></details>
 
   <p class="status" id="ver" style="text-align:center"></p>
-  <div class="importrow status"><label class="btn" for="imp" style="font-size:13px;padding:5px 11px">Acties importeren (.json)</label><input type="file" id="imp" accept=".json,application/json" hidden></div>
+  <div class="pushrow status"><span id="push-status">Meldingen: …</span><button type="button" class="btn" id="push-btn" hidden style="font-size:13px;padding:5px 11px">Meldingen aanzetten</button></div>
+  <div class="importrow status"><button type="button" class="btn" id="backup">Back-up downloaden</button><label class="btn" for="imp">Back-up terugzetten</label><input type="file" id="imp" accept=".json,application/json" hidden></div>
   <p class="status" id="conn" hidden></p>
   </div>
 </div>
@@ -239,6 +253,7 @@ summary{cursor:pointer;font-weight:600}
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 <script>
 /* ===== Plak hier de gegevens van je eigen Firebase-project (zie README) ===== */
 const FIREBASE_CONFIG = {
@@ -249,11 +264,14 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "853734829865",
   appId: "1:853734829865:web:465b0da8e9a570ee4a9138"
 };
+/* Web Push-sleutel uit Firebase: Projectinstellingen → Cloud Messaging → Web Push-certificaten (zie README) */
+const VAPID_KEY = "BEz5ZIFVi4qROtWSdnriAX2BxZ1KOVdXIWpVr8ibe93onbgc7y3_B1ACZLmMAO5QMhg3yOQhkh-wsjSPiKOaxG8";
 </script>
 <script>
 /* Versienummer: JJ.MM.N  (jaar . maand . zoveelste versie in die maand), bijv. 26.10.2 */
-const APP_VERSION = "26.10.4";
+const APP_VERSION = "26.10.5";
 const VERSIONS = [
+  ["26.10.5","2 okt 2026","Werkt als app en offline; pushmeldingen; back-up downloaden en terugzetten."],
   ["26.10.4","2 okt 2026","Knop Gezinscode wissen verwijderd; Firebase alleen nog open voor de eigen gezinscode."],
   ["26.10.3","2 okt 2026","Deadline klein rechts in de lijst, vegen naar links = done, standaard gesorteerd op deadline."],
   ["26.10.2","2 okt 2026","Losse versie voor GitHub Pages met Firebase-opslag."],
@@ -295,7 +313,7 @@ function calLink(t){
 
 /* ---------- wie ben ik ---------- */
 const meSel=$("me"); const saved=store.get("ik"); if(saved) meSel.value=saved;
-meSel.addEventListener("change",()=>store.set("ik",meSel.value));
+meSel.addEventListener("change",()=>{ store.set("ik",meSel.value); if(typeof saveToken==="function") saveToken(); });
 
 /* ---------- versies ---------- */
 $("ver").textContent = `Versie ${VERSIONS[0][0]} - ${VERSIONS[0][1]}`;
@@ -687,12 +705,14 @@ $("g-form").addEventListener("submit",e=>{
   const code=getCode(); if(!code){ showGate(); return; }
   firebase.initializeApp(FIREBASE_CONFIG);
   const fs=firebase.firestore();
+  try{ fs.enablePersistence({synchronizeTabs:true}).catch(()=>{}); }catch(_){}
   const base=fs.collection("lijsten").doc(code);
   db={ collection:n=>base.collection(n), doc:p=>{ const [c,id]=p.split("/"); return base.collection(c).doc(id); }, batch:()=>fs.batch() };
   const fail=()=>{ $("conn").textContent="Geen verbinding met de lijst. Controleer de gezinscode of je internet, en herlaad de app."; $("conn").hidden=false; };
   db.collection("tasks").onSnapshot(s=>{
     tasks=s.docs.map(d=>({id:d.id,...d.data()})); render();
   },fail);
+  setTimeout(initPush,0);
   db.collection("log").orderBy("t","desc").limit(40).onSnapshot(s=>{
     onLog(s);
     if(s.empty) return;
@@ -701,7 +721,83 @@ $("g-form").addEventListener("submit",e=>{
   },()=>{});
 })();
 
-/* ---------- importeren (eenmalig overzetten) ---------- */
+/* ---------- app-modus: service worker + offline ---------- */
+let swReg=null;
+if("serviceWorker" in navigator && location.protocol!=="file:"){
+  navigator.serviceWorker.register("sw.js").then(r=>{ swReg=r; }).catch(()=>{});
+}
+function setOnline(){ $("offline").hidden = navigator.onLine !== false; }
+addEventListener("online",setOnline); addEventListener("offline",setOnline); setOnline();
+const isStandalone = () => (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone===true;
+
+/* ---------- pushmeldingen ---------- */
+const pushReady = () => VAPID_KEY && !VAPID_KEY.startsWith("PLAK") && "Notification" in window && "serviceWorker" in navigator && window.firebase && firebase.messaging;
+let pushToken = store.get("pushToken");
+async function saveToken(){
+  if(!db || !pushToken) return;
+  try{ await db.collection("tokens").doc(pushToken).set({wie:meSel.value,t:Date.now()}); }catch(_){}
+}
+async function getPushToken(){
+  const reg = swReg || await navigator.serviceWorker.ready;
+  const tok = await firebase.messaging().getToken({vapidKey:VAPID_KEY, serviceWorkerRegistration:reg});
+  if(!tok) throw new Error("geen token");
+  if(pushToken && pushToken!==tok){ try{ await db.collection("tokens").doc(pushToken).delete(); }catch(_){} }
+  pushToken=tok; store.set("pushToken",tok); await saveToken();
+}
+function pushUI(){
+  const st=$("push-status"), btn=$("push-btn"), bar=$("pushbar");
+  btn.hidden=true; bar.hidden=true;
+  if(!VAPID_KEY || VAPID_KEY.startsWith("PLAK")){ st.textContent="Meldingen: nog niet ingesteld (zie README)"; return; }
+  if(!("Notification" in window) || !("serviceWorker" in navigator)){
+    st.textContent = isStandalone() ? "Meldingen: niet ondersteund op dit toestel (iOS 16.4 of nieuwer nodig)" : "Meldingen: zet de app eerst op je beginscherm en open hem daar";
+    return;
+  }
+  const perm=Notification.permission;
+  if(perm==="granted" && pushToken){ st.textContent=`Meldingen: aan voor ${meSel.value}`; return; }
+  if(perm==="denied"){ st.textContent="Meldingen: geblokkeerd. Zet ze aan via Instellingen → Meldingen → To Do Jassie."; return; }
+  st.textContent="Meldingen: uit"; btn.hidden=false;
+  let later=0; try{ later=Number(localStorage.getItem("pushLater"))||0; }catch(_){}
+  if(Date.now()-later > 3*864e5) bar.hidden=false;
+}
+async function enablePush(){
+  if(!pushReady()) { pushUI(); return; }
+  try{
+    const perm=await Notification.requestPermission();
+    if(perm!=="granted"){ pushUI(); toast("Meldingen niet toegestaan"); return; }
+    await getPushToken();
+    toast("Meldingen staan aan");
+  }catch(_){ toast("Meldingen aanzetten lukte niet. Probeer het later opnieuw."); }
+  pushUI();
+}
+async function initPush(){
+  pushUI();
+  if(pushReady() && Notification.permission==="granted"){
+    try{ await getPushToken(); }catch(_){}
+    pushUI();
+  }
+}
+$("push-on").onclick=enablePush;
+$("push-btn").onclick=enablePush;
+$("push-later").onclick=()=>{ try{ localStorage.setItem("pushLater",String(Date.now())); }catch(_){} $("pushbar").hidden=true; };
+
+/* ---------- back-up ---------- */
+$("backup").onclick=async()=>{
+  if(!db){ toast("Geen verbinding met de lijst"); return; }
+  let log=[];
+  try{ const s=await db.collection("log").orderBy("t","desc").limit(500).get(); log=s.docs.map(d=>({id:d.id,...d.data()})); }catch(_){}
+  const data={app:"To Do Jassie",versie:APP_VERSION,gemaakt:new Date().toISOString(),tasks:tasks.map(t=>({...t})),log};
+  const name=`todo-jassie-backup-${today()}.json`;
+  const blob=new Blob([JSON.stringify(data,null,1)],{type:"application/json"});
+  try{
+    const file=new File([blob],name,{type:"application/json"});
+    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:name}); return; }
+  }catch(e){ if(e && e.name==="AbortError") return; }
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000);
+  toast("Back-up gedownload");
+};
+
+/* ---------- back-up terugzetten / importeren ---------- */
 $("imp").addEventListener("change",async e=>{
   const f=e.target.files[0]; if(!f||!db) return;
   try{
@@ -710,7 +806,7 @@ $("imp").addEventListener("change",async e=>{
     if(!Array.isArray(list)) throw 0;
     let n=0;
     for(const t of list){ if(!t||!t.id||!t.actie) continue; const {id,...rest}=t; await db.doc("tasks/"+String(id).replace(/[^A-Za-z0-9_-]/g,"")).set(rest); n++; }
-    toast(`${n} acties geïmporteerd`);
+    toast(`${n} acties teruggezet`);
   }catch(_){ toast("Dit bestand kan ik niet lezen"); }
   e.target.value="";
 });
