@@ -1,0 +1,9 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Alleen wie de gezinscode kent, kan de lijst lezen en wijzigen.
+    match /lijsten/{code}/{sub}/{doc} {
+      allow read, write: if code.size() >= 20;
+    }
+  }
+}
