@@ -95,10 +95,12 @@ ul.list:empty{display:none}
 .task.soon::after{background:var(--soon)}
 .num{font:500 13px/1 var(--body);color:var(--muted);min-width:16px;text-align:right;font-variant-numeric:tabular-nums;opacity:.8;align-self:flex-start;padding-top:16px}
 .title{font-weight:500;font-size:16px;flex:1;min-width:0;overflow-wrap:anywhere;padding-block:12px;line-height:1.3}
-.task.has-dl .title{padding-bottom:22px}
+.task.has-meta .title{padding-bottom:22px}
 .task.is-done{padding-right:14px}
 .task.is-done .title{text-decoration:line-through;color:var(--done)}
-.dl{position:absolute;right:40px;bottom:7px;font-size:11px;line-height:1;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none}
+.metar{position:absolute;right:40px;bottom:7px;display:flex;gap:10px;align-items:center;font-size:11px;line-height:1;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none}
+.cc{display:inline-flex;align-items:center;gap:3px}
+.cc svg{display:block}
 .task.late .dl{color:var(--warn);font-weight:600}
 .task.soon .dl{color:var(--soon);font-weight:600}
 .handle{touch-action:none;cursor:grab;width:36px;align-self:stretch;flex:none;display:grid;place-items:center;border:0;background:none;color:var(--muted);opacity:.55;border-radius:10px;padding:0}
@@ -113,6 +115,23 @@ ul.list:empty{display:none}
 .task.swiping{transition:none}
 .task.snap{transition:transform .2s ease}
 .resort{display:block;margin:-4px auto 0;border:0;background:none;color:var(--accent);font:inherit;font-size:13px;font-weight:500;padding:6px 10px;cursor:pointer}
+/* invoer in gewone taal */
+.nlp{margin:2px 0 0;font-size:13px;color:var(--accent);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.nlp b{font-weight:600}
+.nlp button{border:0;background:none;color:var(--muted);font:inherit;text-decoration:underline;padding:0;cursor:pointer}
+/* reacties */
+.comments{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px}
+.comments h4{margin:0;font-size:13px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.clist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.clist li{background:var(--bg);border-radius:12px;padding:8px 11px}
+.clist .chead{display:flex;gap:8px;align-items:baseline;font-size:12.5px;color:var(--muted)}
+.clist .chead b{color:var(--ink);font-weight:600}
+.clist .cdel{margin-left:auto;border:0;background:none;color:var(--muted);font:inherit;font-size:12px;cursor:pointer;padding:0}
+.clist .ctext{white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;margin-top:2px}
+.clist .cempty{background:none;padding:0;color:var(--muted);font-size:14px}
+.cform{display:flex;gap:8px;align-items:flex-end}
+.cform textarea{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:9px 12px;font-size:16px;resize:none;min-height:42px;max-height:140px}
+.cform .btn{flex:none;height:42px}
 /* uitleg: alleen de eerste keer */
 .tip{background:var(--accent-soft);border-radius:var(--r);padding:12px 14px;font-size:14px;display:flex;flex-direction:column;gap:8px}
 .tip ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:2px}
@@ -223,7 +242,7 @@ summary{cursor:pointer;font-weight:600}
 <div class="sheet-bg" id="sheetbg" hidden>
   <form class="sheet" id="form" autocomplete="off">
     <h3 id="ftitle">Nieuwe taak</h3>
-    <div class="field"><label for="f-actie">Actie</label><input id="f-actie" required maxlength="300" placeholder="Wat moet er gebeuren?"></div>
+    <div class="field"><label for="f-actie">Actie</label><input id="f-actie" required maxlength="300" placeholder="Bijv. Huur betalen vrijdag 15 min" autocomplete="off"><p class="nlp" id="nlp" hidden></p></div>
     <div class="two">
       <div class="field"><label for="f-aangemaakt">Datum aangemaakt</label><input id="f-aangemaakt" type="date" required></div>
       <div class="field"><label for="f-deadline">Klaar op</label><input id="f-deadline" type="date"></div>
@@ -253,6 +272,14 @@ summary{cursor:pointer;font-weight:600}
     <div class="meta" id="d-chips"></div>
     <dl class="facts" id="d-facts"></dl>
     <div class="row" id="d-actions"></div>
+    <div class="comments">
+      <h4>Reacties</h4>
+      <ul class="clist" id="d-comments"></ul>
+      <form class="cform edit-only" id="c-form" autocomplete="off">
+        <textarea id="c-text" rows="1" maxlength="1000" placeholder="Schrijf een reactie…" aria-label="Reactie"></textarea>
+        <button type="submit" class="btn primary">Plaats</button>
+      </form>
+    </div>
   </div>
 </div>
 <div class="sheet-bg" id="sharebg" hidden>
@@ -287,8 +314,9 @@ const VAPID_KEY = "BEz5ZIFVi4qROtWSdnriAX2BxZ1KOVdXIWpVr8ibe93onbgc7y3_B1ACZLmMA
 </script>
 <script>
 /* Versienummer: JJ.MM.N  (jaar . maand . zoveelste versie in die maand), bijv. 26.10.2 */
-const APP_VERSION = "26.10.7";
+const APP_VERSION = "26.10.8";
 const VERSIONS = [
+  ["26.10.8","3 okt 2026","Snel invoeren in gewone taal (bijv. \"vrijdag 15 min\") en reacties per actie."],
   ["26.10.7","2 okt 2026","Nieuw ontwerp: compacte kop, één rustige lijst, urgentiestreepjes, eenmalige uitleg, ronde +-knop, nieuw icoon."],
   ["26.10.6","2 okt 2026","Deadline rechtsonder in de hoek van een actie."],
   ["26.10.5","2 okt 2026","Werkt als app en offline; pushmeldingen; back-up downloaden en terugzetten."],
@@ -309,6 +337,7 @@ const VERSIONS = [
 ];
 const CAL = "hgreuters@hotmail.com";
 const $ = id => document.getElementById(id);
+let reacties = [];
 let db = null, tasks = [], filter = "open", editing = null, canWrite = true, drag = null, pendingRender = false, shown = null;
 
 /* ---------- helpers ---------- */
@@ -381,9 +410,9 @@ function render(){
   $("list").innerHTML = rows.map((t,i)=>{
     const isLate=!t.klaar && t.deadline && t.deadline<t0;
     const isSoon=!t.klaar && t.deadline && !isLate && t.deadline<=addDays(t0,1);
-    return `<li class="task ${t.klaar?"is-done":""} ${isLate?"late":""} ${isSoon?"soon":""} ${!t.klaar && t.deadline?"has-dl":""}" data-id="${t.id}" tabindex="0" role="button" aria-label="${i+1}. ${esc(t.actie)}${isLate?" (te laat)":""}">
+    return `<li class="task ${t.klaar?"is-done":""} ${isLate?"late":""} ${isSoon?"soon":""} ${(!t.klaar && t.deadline) || ccount(t.id) ? "has-meta":""}" data-id="${t.id}" tabindex="0" role="button" aria-label="${i+1}. ${esc(t.actie)}${isLate?" (te laat)":""}">
       <span class="num">${i+1}</span><span class="title">${esc(t.actie)}</span>
-      ${!t.klaar && t.deadline?`<span class="dl">deadline: ${kort(t.deadline)}</span>`:""}
+      ${(!t.klaar && t.deadline) || ccount(t.id) ? `<span class="metar">${ccount(t.id)?`<span class="cc" aria-label="${ccount(t.id)} reacties"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>${ccount(t.id)}</span>`:""}${!t.klaar && t.deadline?`<span class="dl">deadline: ${kort(t.deadline)}</span>`:""}</span>`:""}
       ${t.klaar?"":`<button class="handle" type="button" aria-label="Versleep om de prioriteit te veranderen"><svg viewBox="0 0 12 18" width="12" height="18" fill="currentColor" aria-hidden="true"><circle cx="3" cy="3" r="1.6"/><circle cx="9" cy="3" r="1.6"/><circle cx="3" cy="9" r="1.6"/><circle cx="9" cy="9" r="1.6"/><circle cx="3" cy="15" r="1.6"/><circle cx="9" cy="15" r="1.6"/></svg></button>`}
     </li>`;}).join("");
   if(shown){ const t=tasks.find(x=>x.id===shown); t ? showDetail(t) : closeDetail(); }
@@ -391,7 +420,8 @@ function render(){
 
 /* ---------- pop-up met details ---------- */
 function showDetail(t){
-  shown=t.id; const t0=today(); const isLate=!t.klaar && t.deadline && t.deadline<t0;
+  if(shown!==t.id){ $("c-text").value=""; }
+  shown=t.id; renderComments(); const t0=today(); const isLate=!t.klaar && t.deadline && t.deadline<t0;
   $("d-title").textContent=t.actie;
   $("d-chips").innerHTML = (t.deadline?`<span class="chip ${isLate?"late":"due"}">${isLate?"Te laat · ":"Klaar op "}${nl(t.deadline)}</span>`:"")
     + (t.tijd?`<span class="chip">${fmtTijd(t.tijd)}</span>`:"")
@@ -570,6 +600,100 @@ document.addEventListener("touchend",()=>{ cancelPress(); endDrag(); });
 document.addEventListener("touchcancel",()=>{ cancelPress(); endDrag(); });
 list.addEventListener("contextmenu",e=>{ if(drag||press) e.preventDefault(); });
 
+/* ---------- reacties per actie ---------- */
+function ccount(id){ return reacties.reduce((n,c)=>n+(c.taskId===id?1:0),0); }
+function renderComments(){
+  if(!shown) return;
+  const L=reacties.filter(c=>c.taskId===shown).sort((a,b)=>(a.t||0)-(b.t||0));
+  $("d-comments").innerHTML = L.length ? L.map(c=>{
+    const dt=new Date(c.t||0);
+    const when=dt.toLocaleDateString("nl-NL",{day:"numeric",month:"short"})+" "+dt.toLocaleTimeString("nl-NL",{hour:"2-digit",minute:"2-digit"});
+    const mine = c.wie===meSel.value && canWrite;
+    return `<li><div class="chead"><b>${esc(c.wie)}</b><time>${when}</time>${mine?`<button type="button" class="cdel" data-c="${esc(c.id)}">verwijderen</button>`:""}</div><div class="ctext">${esc(c.tekst)}</div></li>`;
+  }).join("") : `<li class="cempty">Nog geen reacties.</li>`;
+}
+const cText=$("c-text");
+cText.addEventListener("input",()=>{ cText.style.height="auto"; cText.style.height=Math.min(cText.scrollHeight,140)+"px"; });
+$("c-form").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const tekst=cText.value.trim(); const t=tasks.find(x=>x.id===shown);
+  if(!tekst || !t || !db) return;
+  cText.value=""; cText.style.height="";
+  try{
+    await db.collection("reacties").add({taskId:t.id,wie:meSel.value,tekst,t:Date.now()});
+    try{ await db.collection("log").add({t:Date.now(),wie:meSel.value,wat:"reactie",actie:String(t.actie).slice(0,200),tekst:tekst.slice(0,300)}); }catch(_){}
+  }catch(_){ cText.value=tekst; toast("Reactie plaatsen lukte niet, probeer het opnieuw"); }
+});
+$("d-comments").addEventListener("click",async e=>{
+  const b=e.target.closest("[data-c]"); if(!b||!db) return;
+  try{ await db.doc("reacties/"+b.dataset.c).delete(); toast("Reactie verwijderd"); }catch(_){ toast("Verwijderen lukte niet"); }
+});
+
+/* ---------- invoer in gewone taal ---------- */
+const DAGEN=["zondag","maandag","dinsdag","woensdag","donderdag","vrijdag","zaterdag"];
+const MAANDEN={jan:1,januari:1,feb:2,februari:2,mrt:3,maart:3,apr:4,april:4,mei:5,jun:6,juni:6,jul:7,juli:7,aug:8,augustus:8,sep:9,sept:9,september:9,okt:10,oktober:10,nov:11,november:11,dec:12,december:12};
+function isoPlus(iso,n){ const d=new Date(iso+"T12:00:00Z"); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); }
+function geldig(y,m,d){ const x=new Date(Date.UTC(y,m-1,d,12)); return x.getUTCFullYear()===y && x.getUTCMonth()===m-1 && x.getUTCDate()===d ? x.toISOString().slice(0,10) : null; }
+/* Haalt een deadline en benodigde tijd uit gewone tekst. Geeft {titel, deadline, tijd} terug. */
+function parseInvoer(tekst, vandaag){
+  let titel=" "+tekst+" ", deadline="", tijd="";
+  const VOOR="(?:(?:uiterlijk|deadline:?|voor|vóór|op)\\s+)?";
+  const weg=m=>{ titel=titel.replace(m," "); };
+  // benodigde tijd
+  let m=titel.match(/\s(?:een\s+)?half\s+uur\b/i); if(m){ tijd=30; weg(m[0]); }
+  if(!tijd){ m=titel.match(/\s(?:een\s+)?kwartier\b/i); if(m){ tijd=15; weg(m[0]); } }
+  if(!tijd){ m=titel.match(/\s(\d+(?:[.,]\d+)?)\s*(?:u|uur|uren)(?=[\s.,!?]|$)/i); if(m){ tijd=Math.round(parseFloat(m[1].replace(",","."))*60); weg(m[0]); } }
+  if(!tijd){ m=titel.match(/\s(\d{1,3})\s*(?:min|mins|minuten|minuut|m)(?=[\s.,!?]|$)/i); if(m){ tijd=+m[1]; weg(m[0]); } }
+  // datum (eerste treffer)
+  const probeer=[
+    [new RegExp("\\s"+VOOR+"overmorgen\\b","i"), ()=>isoPlus(vandaag,2)],
+    [new RegExp("\\s"+VOOR+"morgen\\b","i"), ()=>isoPlus(vandaag,1)],
+    [new RegExp("\\s"+VOOR+"vandaag\\b","i"), ()=>vandaag],
+    [new RegExp("\\s"+VOOR+"over\\s+(\\d{1,3})\\s+(dag|dagen|week|weken)\\b","i"), x=>isoPlus(vandaag, +x[1]*(/^w/i.test(x[2])?7:1))],
+    [new RegExp("\\s"+VOOR+"volgende\\s+week\\b","i"), ()=>isoPlus(vandaag,7)],
+    [new RegExp("\\s"+VOOR+"(volgende\\s+)?("+DAGEN.join("|")+")\\b","i"), x=>{
+        const doel=DAGEN.indexOf(x[2].toLowerCase()), nu=new Date(vandaag+"T12:00:00Z").getUTCDay();
+        let n=(doel-nu+7)%7; if(n===0) n=7; if(x[1]) n+=7; return isoPlus(vandaag,n); }],
+    [new RegExp("\\s"+VOOR+"(\\d{1,2})\\s+("+Object.keys(MAANDEN).join("|")+")\\.?(?:\\s+(\\d{4}))?(?=[\\s.,!?]|$)","i"), x=>{
+        const y0=+vandaag.slice(0,4), mm=MAANDEN[x[2].toLowerCase()];
+        let d=geldig(x[3]?+x[3]:y0, mm, +x[1]); if(d && !x[3] && d<vandaag) d=geldig(y0+1,mm,+x[1]); return d; }],
+    [new RegExp("\\s"+VOOR+"(\\d{1,2})[-/](\\d{1,2})(?:[-/](\\d{2,4}))?(?=[\\s.,!?]|$)","i"), x=>{
+        const y0=+vandaag.slice(0,4); let y=x[3]?+x[3]:y0; if(y<100) y+=2000;
+        let d=geldig(y,+x[2],+x[1]); if(d && !x[3] && d<vandaag) d=geldig(y0+1,+x[2],+x[1]); return d; }],
+  ];
+  for(const [re,f] of probeer){ const x=titel.match(re); if(!x) continue; const d=f(x); if(d){ deadline=d; weg(x[0]); break; } }
+  titel=titel.replace(/\s{2,}/g," ").replace(/\s+([.,!?])/g,"$1").replace(/[\s,–-]+$/,"").trim();
+  if(titel) titel=titel[0].toUpperCase()+titel.slice(1);
+  return {titel, deadline, tijd};
+}
+const DAGKORT=["zo","ma","di","wo","do","vr","za"];
+const mooi = iso => { const d=new Date(iso+"T12:00:00Z"); return `${DAGKORT[d.getUTCDay()]} ${+iso.slice(8)} ${MND[+iso.slice(5,7)-1]}`; };
+let nlpUit=false, nlpAuto={deadline:false,tijd:false};
+function nlpUpdate(){
+  const box=$("nlp");
+  if(editing || nlpUit){ box.hidden=true; return null; }
+  const r=parseInvoer($("f-actie").value, today());
+  const dl=$("f-deadline"), tj=$("f-tijd");
+  if(r.deadline && (!dl.value || nlpAuto.deadline)){ dl.value=r.deadline; nlpAuto.deadline=true; }
+  else if(!r.deadline && nlpAuto.deadline){ dl.value=""; nlpAuto.deadline=false; }
+  if(r.tijd && (!tj.value || nlpAuto.tijd)){ tj.value=r.tijd; nlpAuto.tijd=true; }
+  else if(!r.tijd && nlpAuto.tijd){ tj.value=""; nlpAuto.tijd=false; }
+  const bits=[]; if(r.deadline) bits.push(`deadline <b>${mooi(r.deadline)}</b>`); if(r.tijd) bits.push(`<b>${fmtTijd(r.tijd)}</b>`);
+  if(!bits.length){ box.hidden=true; return r; }
+  box.innerHTML=`Herkend: ${bits.join(" · ")} <button type="button" id="nlp-x">niet gebruiken</button>`;
+  box.hidden=false; return r;
+}
+$("f-actie").addEventListener("input",nlpUpdate);
+$("f-deadline").addEventListener("input",()=>{ nlpAuto.deadline=false; });
+$("f-tijd").addEventListener("input",()=>{ nlpAuto.tijd=false; });
+$("nlp").addEventListener("click",e=>{
+  if(e.target.id!=="nlp-x") return;
+  nlpUit=true;
+  if(nlpAuto.deadline){ $("f-deadline").value=""; nlpAuto.deadline=false; }
+  if(nlpAuto.tijd){ $("f-tijd").value=""; nlpAuto.tijd=false; }
+  $("nlp").hidden=true;
+});
+
 /* ---------- uitleg één keer + datum in de kop ---------- */
 $("tip-ok").onclick=()=>{ try{ localStorage.setItem("tipSeen","1"); }catch(_){} $("tip").hidden=true; };
 $("today").textContent=new Date().toLocaleDateString("nl-NL",{weekday:"long",day:"numeric",month:"short"});
@@ -632,7 +756,7 @@ $("resort").onclick=async()=>{
 
 /* ---------- formulier ---------- */
 function openSheet(t){
-  editing=t||null;
+  editing=t||null; nlpUit=false; nlpAuto={deadline:false,tijd:false}; $("nlp").hidden=true;
   $("ftitle").textContent=t?"Taak wijzigen":"Nieuwe taak";
   $("f-actie").value=t?.actie||""; $("f-aangemaakt").value=t?.aangemaakt||today();
   $("f-deadline").value=t?.deadline||""; $("f-door").value=t?.door||meSel.value; $("f-opm").value=t?.opmerking||""; $("f-url").value=t?.url||""; $("f-tijd").value=t?.tijd||"";
@@ -646,10 +770,13 @@ $("sheetbg").addEventListener("click",e=>{ if(e.target===$("sheetbg")) closeShee
 $("del").onclick=()=>$("delconfirm").hidden=false;
 $("delno").onclick=()=>$("delconfirm").hidden=true;
 $("delyes").onclick=async()=>{ const t=editing; closeSheet();
+  for(const c of reacties.filter(c=>c.taskId===t.id)){ try{ await db.doc("reacties/"+c.id).delete(); }catch(_){} }
   await write(()=>db.doc("tasks/"+t.id).delete(),"verwijderd",t.actie,"Verwijderd"); };
 $("form").addEventListener("submit",async e=>{
   e.preventDefault();
-  const data={actie:$("f-actie").value.trim(),aangemaakt:$("f-aangemaakt").value,deadline:$("f-deadline").value,
+  const nl_=(!editing && !nlpUit) ? parseInvoer($("f-actie").value, today()) : null;
+  const titelIn = nl_ && (nl_.deadline||nl_.tijd) && nl_.titel ? nl_.titel : $("f-actie").value.trim();
+  const data={actie:titelIn,aangemaakt:$("f-aangemaakt").value,deadline:$("f-deadline").value,
     door:$("f-door").value,opmerking:$("f-opm").value.trim(),url:cleanUrl($("f-url").value),tijd:Math.max(0,Math.round(Number($("f-tijd").value)||0))||"",gewijzigd:Date.now(),gewijzigdDoor:meSel.value};
   if(!data.actie) return;
   if($("f-url").value.trim() && !data.url){ toast("Dat webadres klopt niet"); return; }
@@ -664,7 +791,8 @@ $("form").addEventListener("submit",async e=>{
 });
 
 /* ---------- meldingen ---------- */
-const NOTIFY = ["toegevoegd","afgehandeld"];
+const NOTIFY = ["toegevoegd","afgehandeld","reactie"];
+const NUDGE = ["toegevoegd","afgehandeld"];
 function note(html,ms){
   const c=document.createElement("div"); c.className="note-card";
   c.innerHTML=`<div class="txt">${html}</div><button type="button" class="x" aria-label="Sluiten">✕</button>`;
@@ -673,7 +801,9 @@ function note(html,ms){
   while($("notes").children.length>3) $("notes").lastChild.remove();
   if(ms) setTimeout(()=>c.remove(),ms);
 }
-const logLine = x => `<b>${esc(x.wie)}</b> heeft „${esc(x.actie)}” ${esc(x.wat)}`;
+const logLine = x => x.wat==="reactie"
+  ? `<b>${esc(x.wie)}</b> reageerde op „${esc(x.actie)}”${x.tekst?`: ${esc(String(x.tekst).slice(0,140))}`:""}`
+  : `<b>${esc(x.wie)}</b> heeft „${esc(x.actie)}” ${esc(x.wat)}`;
 function waNudge(wat,actie){
   const txt=`To Do Jassie: ${meSel.value} heeft „${actie}” ${wat}.`;
   note(`${wat==="toegevoegd"?"Toegevoegd":"Op Done gezet"}. <a href="https://wa.me/?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">Laat de anderen weten via WhatsApp ↗</a>`,7000);
@@ -699,7 +829,7 @@ function onLog(s){
 
 async function write(fn,wat,actie,msg){
   if(!db){ toast("Geen verbinding met de lijst"); return; }
-  try{ await fn(); if(NOTIFY.includes(wat)) waNudge(wat,actie); else toast(msg);
+  try{ await fn(); if(NUDGE.includes(wat)) waNudge(wat,actie); else toast(msg);
     try{ await db.collection("log").add({t:Date.now(),wie:meSel.value,wat,actie:String(actie).slice(0,200)}); }catch(e){}
   }catch(err){
     if(err&&err.code==="invalid_argument"){ canWrite=false; document.body.classList.add("readonly"); toast("Je kunt deze lijst alleen bekijken"); }
@@ -739,12 +869,15 @@ $("g-form").addEventListener("submit",e=>{
   db.collection("tasks").onSnapshot(s=>{
     tasks=s.docs.map(d=>({id:d.id,...d.data()})); render();
   },fail);
+  db.collection("reacties").onSnapshot(s=>{
+    reacties=s.docs.map(d=>({id:d.id,...d.data()})); render(); renderComments();
+  },()=>{});
   setTimeout(initPush,0);
   db.collection("log").orderBy("t","desc").limit(40).onSnapshot(s=>{
     onLog(s);
     if(s.empty) return;
     $("log").innerHTML=s.docs.map(d=>{const x=d.data(); const dt=new Date(x.t);
-      return `<li><time>${dt.toLocaleDateString("nl-NL",{day:"numeric",month:"short"})} ${dt.toLocaleTimeString("nl-NL",{hour:"2-digit",minute:"2-digit"})}</time><b>${esc(x.wie)}</b> heeft „${esc(x.actie)}” ${esc(x.wat)}</li>`;}).join("");
+      return `<li><time>${dt.toLocaleDateString("nl-NL",{day:"numeric",month:"short"})} ${dt.toLocaleTimeString("nl-NL",{hour:"2-digit",minute:"2-digit"})}</time>${logLine(x)}</li>`;}).join("");
   },()=>{});
 })();
 
@@ -812,7 +945,7 @@ $("backup").onclick=async()=>{
   if(!db){ toast("Geen verbinding met de lijst"); return; }
   let log=[];
   try{ const s=await db.collection("log").orderBy("t","desc").limit(500).get(); log=s.docs.map(d=>({id:d.id,...d.data()})); }catch(_){}
-  const data={app:"To Do Jassie",versie:APP_VERSION,gemaakt:new Date().toISOString(),tasks:tasks.map(t=>({...t})),log};
+  const data={app:"To Do Jassie",versie:APP_VERSION,gemaakt:new Date().toISOString(),tasks:tasks.map(t=>({...t})),reacties:reacties.map(c=>({...c})),log};
   const name=`todo-jassie-backup-${today()}.json`;
   const blob=new Blob([JSON.stringify(data,null,1)],{type:"application/json"});
   try{
@@ -833,6 +966,7 @@ $("imp").addEventListener("change",async e=>{
     if(!Array.isArray(list)) throw 0;
     let n=0;
     for(const t of list){ if(!t||!t.id||!t.actie) continue; const {id,...rest}=t; await db.doc("tasks/"+String(id).replace(/[^A-Za-z0-9_-]/g,"")).set(rest); n++; }
+    if(Array.isArray(data.reacties)) for(const c of data.reacties){ if(!c||!c.id||!c.taskId||!c.tekst) continue; const {id,...rest}=c; await db.doc("reacties/"+String(id).replace(/[^A-Za-z0-9_-]/g,"")).set(rest); }
     toast(`${n} acties teruggezet`);
   }catch(_){ toast("Dit bestand kan ik niet lezen"); }
   e.target.value="";
